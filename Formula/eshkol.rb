@@ -9,7 +9,7 @@ class Eshkol < Formula
   desc "Functional programming language with HoTT types and autodiff"
   homepage "https://eshkol.ai"
   url "https://github.com/tsotchke/eshkol/archive/v1.0.1.tar.gz"
-  sha256 "95a1925950357ba989b323901df7ca8f55c2b6c3b5e64dec864f093130558171"
+  sha256 "06e24af42cbfbca73c4a46c006870e7003f19209fefe6c7d2d748f53e020d8d7"
   license "MIT"
   head "https://github.com/tsotchke/eshkol.git", branch: "master"
 
@@ -29,11 +29,14 @@ class Eshkol < Formula
     ENV["DYLD_FALLBACK_LIBRARY_PATH"] = llvm.opt_lib
 
     # Configure with explicit LLVM paths and proper RPATH
+    # CMAKE_BUILD_WITH_INSTALL_RPATH ensures rpath is set at build time (needed for stdlib.o generation)
     system "cmake", "-B", "build", "-G", "Ninja",
            "-DCMAKE_BUILD_TYPE=Release",
            "-DLLVM_DIR=#{llvm.opt_lib}/cmake/llvm",
            "-DCMAKE_INSTALL_RPATH=#{llvm.opt_lib}",
            "-DCMAKE_BUILD_RPATH=#{llvm.opt_lib}",
+           "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
+           "-DCMAKE_MACOSX_RPATH=ON",
            *std_cmake_args
 
     # Build (stdlib.o is generated as part of this - eshkol-run compiles stdlib.esk)
