@@ -9,7 +9,7 @@ class Eshkol < Formula
   desc "Functional programming language with HoTT types and autodiff"
   homepage "https://eshkol.ai"
   url "https://github.com/tsotchke/eshkol/archive/v1.0.1.tar.gz"
-  sha256 "06e24af42cbfbca73c4a46c006870e7003f19209fefe6c7d2d748f53e020d8d7"
+  sha256 "9482882cdd85745ed4643cd19bbe433e73e84c1b0ccdd3c28a34a6e5443b2c5a"
   license "MIT"
   head "https://github.com/tsotchke/eshkol.git", branch: "master"
 
@@ -39,11 +39,16 @@ class Eshkol < Formula
            "-DCMAKE_MACOSX_RPATH=ON",
            *std_cmake_args
 
-    # Build (stdlib.o is generated as part of this - eshkol-run compiles stdlib.esk)
-    system "cmake", "--build", "build"
+    # Build eshkol-run and eshkol-repl (skip stdlib target - we'll generate it manually)
+    system "cmake", "--build", "build", "--target", "eshkol-run"
+    system "cmake", "--build", "build", "--target", "eshkol-repl"
+
+    # Generate stdlib.o using the freshly built eshkol-run compiler
+    # This compiles lib/stdlib.esk to build/stdlib.o
+    system "build/eshkol-run", "--shared-lib", "-o", "build/stdlib", "lib/stdlib.esk"
 
     # Verify stdlib.o was created
-    odie "stdlib.o was not created - eshkol-run may have failed to find LLVM libraries" unless File.exist?("build/stdlib.o")
+    odie "stdlib.o was not created - eshkol-run compilation failed" unless File.exist?("build/stdlib.o")
 
     # Install binaries
     bin.install "build/eshkol-run"
