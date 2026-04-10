@@ -1,3 +1,6 @@
+# typed: strict
+# frozen_string_literal: true
+
 # Homebrew formula for Eshkol
 # This file should be copied to a homebrew-eshkol tap repository
 #
@@ -8,22 +11,31 @@
 class Eshkol < Formula
   desc "Functional programming language with HoTT types and autodiff"
   homepage "https://eshkol.ai"
-  url "https://github.com/tsotchke/eshkol/archive/v1.0.1.1.tar.gz"
-  sha256 "cbddc4867e15ba915bf362cfa84124b131f2ef645dd72f0b646116c249844b29"
+  url "https://github.com/tsotchke/eshkol/archive/refs/tags/v1.1.13-accelerate.tar.gz"
+  # sha256 is filled in by scripts/update-homebrew-formula.sh after the release tarball is published
+  sha256 "f2ad8b78d2bb4e5564365c3402b7275bcee9ce46d9aef1e7ffb626907662a531"
   license "MIT"
   head "https://github.com/tsotchke/eshkol.git", branch: "master"
 
   depends_on "cmake" => :build
   depends_on "ninja" => :build
-  depends_on "llvm@17"
+  # Eshkol pins to LLVM 21 specifically: the codegen uses Triple::isOSWindows()
+  # and Intrinsic::sponentry/frameaddress lowering that landed in LLVM 21,
+  # and the bytecode VM ABI assumes LLVM 21's tagged_value_t struct layout.
+  depends_on "llvm@21"
   depends_on "readline"
 
   def install
     # Set LLVM paths for build and runtime
-    llvm = Formula["llvm@17"]
-    ENV["PATH"] = "#{llvm.opt_bin}:#{ENV["PATH"]}"
-    ENV["LDFLAGS"] = "-L#{llvm.opt_lib} -Wl,-rpath,#{llvm.opt_lib} #{ENV["LDFLAGS"]}"
-    ENV["CPPFLAGS"] = "-I#{llvm.opt_include} #{ENV["CPPFLAGS"]}"
+    llvm = Formula["llvm@21"]
+
+    # Refuse to build against anything older than 21.1.0 — earlier 21.0.x
+    # snapshots are missing the AArch64 setjmp lowering Eshkol depends on.
+    odie "Eshkol requires LLVM 21.1.0 or newer; found #{llvm.version}" if llvm.version < Version.new("21.1.0")
+
+    ENV["PATH"] = "#{llvm.opt_bin}:#{ENV.fetch("PATH", nil)}"
+    ENV["LDFLAGS"] = "-L#{llvm.opt_lib} -Wl,-rpath,#{llvm.opt_lib} #{ENV.fetch("LDFLAGS", nil)}"
+    ENV["CPPFLAGS"] = "-I#{llvm.opt_include} #{ENV.fetch("CPPFLAGS", nil)}"
 
     # Set runtime library path so eshkol-run can find LLVM when generating stdlib.o
     ENV["DYLD_FALLBACK_LIBRARY_PATH"] = llvm.opt_lib
@@ -45,11 +57,15 @@ class Eshkol < Formula
     system "cmake", "--build", "build", "--target", "eshkol-repl"
     system "cmake", "--build", "build", "--target", "eshkol-static"
 
-    # Compile stdlib using eshkol-run
-    system "build/eshkol-run", "--shared-lib", "-o", "build/stdlib", "lib/stdlib.esk"
+    # Compile stdlib using eshkol-run. The cmake build target above also produces
+    # both build/stdlib.o (object code) and build/stdlib.bc (LLVM bitcode for the
+    # REPL JIT's symbol discovery), so we don't actually need to invoke eshkol-run
+    # again — but we keep this as a sanity check that the freshly-installed
+    # eshkol-run binary works.
+    system "cmake", "--build", "build", "--target", "stdlib"
 
-    # Verify stdlib.o was created
     odie "stdlib.o was not created - compilation failed" unless File.exist?("build/stdlib.o")
+    odie "stdlib.bc was not created - REPL JIT will lack symbol discovery" unless File.exist?("build/stdlib.bc")
 
     # Install binaries
     bin.install "build/eshkol-run"
@@ -58,15 +74,25 @@ class Eshkol < Formula
     # Install library files to lib/eshkol/ (primary location)
     (lib/"eshkol").mkpath
     (lib/"eshkol").install "build/stdlib.o"
+    (lib/"eshkol").install "build/stdlib.bc"
     (lib/"eshkol").install "build/libeshkol-static.a"
 
     # Create symlinks in lib/ for convenience
-    lib.install_symlink (lib/"eshkol/stdlib.o")
-    lib.install_symlink (lib/"eshkol/libeshkol-static.a")
+    lib.install_symlink(lib/"eshkol/stdlib.o")
+    lib.install_symlink(lib/"eshkol/stdlib.bc")
+    lib.install_symlink(lib/"eshkol/libeshkol-static.a")
 
     # Install library source files
     (share/"eshkol").install "lib/stdlib.esk"
     (share/"eshkol/core").install Dir["lib/core/*"] if Dir.exist?("lib/core")
+    (share/"eshkol/math").install Dir["lib/math/*"] if Dir.exist?("lib/math")
+    (share/"eshkol").install "lib/math.esk" if File.exist?("lib/math.esk")
+    (share/"eshkol/signal").install Dir["lib/signal/*"] if Dir.exist?("lib/signal")
+    (share/"eshkol/ml").install Dir["lib/ml/*"] if Dir.exist?("lib/ml")
+    (share/"eshkol/random").install Dir["lib/random/*"] if Dir.exist?("lib/random")
+    (share/"eshkol/web").install Dir["lib/web/*"] if Dir.exist?("lib/web")
+    (share/"eshkol/tensor").install Dir["lib/tensor/*"] if Dir.exist?("lib/tensor")
+    (share/"eshkol/quantum").install Dir["lib/quantum/*"] if Dir.exist?("lib/quantum")
   end
 
   def caveats
@@ -87,6 +113,6 @@ class Eshkol < Formula
     # Test basic compilation
     (testpath/"hello.esk").write('(display "Hello, World!")')
     system "#{bin}/eshkol-run", "hello.esk", "-L#{lib}"
-    assert_predicate testpath/"a.out", :exist?
+    assert_path_exists testpath/"a.out"
   end
 end
