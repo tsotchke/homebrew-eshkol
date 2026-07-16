@@ -11,8 +11,8 @@
 class Eshkol < Formula
   desc "Functional programming language with HoTT types and autodiff"
   homepage "https://eshkol.ai"
-  url "https://github.com/tsotchke/eshkol/archive/refs/tags/v1.3.2-evolve.tar.gz"
-  sha256 "c9efcd2ef4c46c17644056bc9b26263368c6394449e56a5a58e38e32cefb7b9b"
+  url "https://github.com/tsotchke/eshkol/archive/refs/tags/v1.3.3-evolve.tar.gz"
+  sha256 "d40afd6e0766d9698247114c283cfa333859de0204f388502dbf7c6104600389"
   license "MIT"
   head "https://github.com/tsotchke/eshkol.git", branch: "master"
 
