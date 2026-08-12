@@ -16,7 +16,7 @@ class Eshkol < Formula
   homepage "https://eshkol.ai"
   url "https://github.com/tsotchke/eshkol/archive/refs/tags/v1.3.3-evolve.tar.gz"
   # sha256 is filled in by scripts/update-homebrew-formula.sh after the release tarball is published
-  sha256 "d40afd6e0766d9698247114c283cfa333859de0204f388502dbf7c6104600389"
+  sha256 "48d7141fa02988e51415c6fd41f175b31f51498c25c60698aa63c5ebaeeecc12"
   license "MIT"
   head "https://github.com/tsotchke/eshkol.git", branch: "master"
 
