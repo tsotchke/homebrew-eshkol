@@ -14,9 +14,9 @@
 class Eshkol < Formula
   desc "Functional programming language with HoTT types and autodiff"
   homepage "https://eshkol.ai"
-  url "https://github.com/tsotchke/eshkol/archive/refs/tags/v1.3.3-evolve.tar.gz"
+  url "https://github.com/tsotchke/eshkol/archive/refs/tags/v1.3.4-evolve.tar.gz"
   # sha256 is filled in by scripts/update-homebrew-formula.sh after the release tarball is published
-  sha256 "48d7141fa02988e51415c6fd41f175b31f51498c25c60698aa63c5ebaeeecc12"
+  sha256 "e2b0056db32d1807dff5ba01b75d14e3c2f7557e7b2b4b6b7166179395c91613"
   license "MIT"
   head "https://github.com/tsotchke/eshkol.git", branch: "master"
 
